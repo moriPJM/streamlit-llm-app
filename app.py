@@ -27,10 +27,17 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
     }
     
     try:
-        # APIキーを取得し、未設定の場合はエラーを返す
-        api_key = os.getenv("OPENAI_API_KEY")
+        # APIキーを取得 - Streamlit Community Cloud対応
+        api_key = None
+        try:
+            # Streamlit Community Cloudの場合はst.secretsを使用
+            api_key = st.secrets["OPENAI_API_KEY"]
+        except (KeyError, FileNotFoundError):
+            # ローカル環境の場合は.envファイルから取得
+            api_key = os.getenv("OPENAI_API_KEY")
+        
         if not api_key:
-            return "エラー: OpenAI APIキーが設定されていません。サイドバーの手順に従ってAPIキーを設定してください。"
+            return "エラー: OpenAI APIキーが設定されていません。Streamlit Community Cloudの場合はSecrets設定、ローカル環境の場合は.envファイルにAPIキーを設定してください。"
 
         # ChatOpenAIインスタンスを作成
         chat = ChatOpenAI(
@@ -50,11 +57,23 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
         return response.content
         
     except Exception as e:
+        # より詳細なエラー情報を提供
+        error_type = type(e).__name__
+        error_message = str(e)
+        
         # 開発者向けの詳細なエラーはログに出力
         import logging
-        logging.error("LLM応答取得時に例外発生: %s", str(e))
-        # ユーザーには簡潔なエラーメッセージのみ表示
-        return "エラーが発生しました。しばらくしてから再度お試しください。"
+        logging.error("LLM応答取得時に例外発生 [%s]: %s", error_type, error_message)
+        
+        # APIキー関連のエラーの場合
+        if "authentication" in error_message.lower() or "api" in error_message.lower():
+            return f"認証エラー: OpenAI APIキーを確認してください。エラー詳細: {error_type}"
+        # レート制限エラーの場合
+        elif "rate" in error_message.lower() or "quota" in error_message.lower():
+            return "レート制限に達しました。しばらく待ってから再度お試しください。"
+        # その他のエラーの場合
+        else:
+            return f"エラーが発生しました ({error_type})。しばらくしてから再度お試しください。"
 
 def main():
     # ページ設定
@@ -141,13 +160,25 @@ def main():
         st.header("📊 アプリ情報")
         st.markdown(f"**現在選択中**: {expert_type}")
         
-        # APIキーの設定状況確認
-        if os.getenv("OPENAI_API_KEY"):
+        # APIキーの設定状況確認（Streamlit Community Cloud対応）
+        api_key_set = False
+        try:
+            # Streamlit Community Cloudの場合
+            api_key_set = bool(st.secrets.get("OPENAI_API_KEY"))
+        except (KeyError, FileNotFoundError):
+            # ローカル環境の場合
+            api_key_set = bool(os.getenv("OPENAI_API_KEY"))
+        
+        if api_key_set:
             st.success("✅ OpenAI API設定済み")
         else:
             st.error("❌ OpenAI APIキーが設定されていません")
             st.markdown("""
-            **設定方法**:
+            **Streamlit Community Cloud設定方法**:
+            1. アプリ設定のSecretsタブを開く
+            2. `OPENAI_API_KEY = "your_api_key"`を追加
+            
+            **ローカル環境設定方法**:
             1. `.env`ファイルを作成
             2. `OPENAI_API_KEY=your_api_key`を追加
             """)
