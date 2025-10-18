@@ -37,7 +37,19 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
             api_key = os.getenv("OPENAI_API_KEY")
         
         if not api_key:
-            return "エラー: OpenAI APIキーが設定されていません。Streamlit Community Cloudの場合はSecrets設定、ローカル環境の場合は.envファイルにAPIキーを設定してください。"
+            return """
+            エラー: OpenAI APIキーが設定されていません。
+            
+            **設定方法**:
+            
+            **Streamlit Community Cloud**: 
+            1. アプリ設定のSecretsタブを開く
+            2. `OPENAI_API_KEY = "your_api_key"`を追加
+            
+            **ローカル環境**: 
+            1. `.env`ファイルを作成
+            2. `OPENAI_API_KEY=your_api_key`を追加
+            """
 
         # ChatOpenAIインスタンスを作成
         chat = ChatOpenAI(
@@ -57,7 +69,7 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
         return response.content
         
     except Exception as e:
-        # より詳細なエラー情報を提供
+        # より詳細なエラー情報を提供（デバッグ用）
         error_type = type(e).__name__
         error_message = str(e)
         
@@ -65,15 +77,20 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
         import logging
         logging.error("LLM応答取得時に例外発生 [%s]: %s", error_type, error_message)
         
-        # APIキー関連のエラーの場合
-        if "authentication" in error_message.lower() or "api" in error_message.lower():
-            return f"認証エラー: OpenAI APIキーを確認してください。エラー詳細: {error_type}"
-        # レート制限エラーの場合
-        elif "rate" in error_message.lower() or "quota" in error_message.lower():
-            return "レート制限に達しました。しばらく待ってから再度お試しください。"
-        # その他のエラーの場合
-        else:
-            return f"エラーが発生しました ({error_type})。しばらくしてから再度お試しください。"
+        # デバッグ用：詳細なエラー情報を表示
+        return f"""
+        エラーが発生しました：
+        
+        **エラータイプ**: {error_type}
+        **エラーメッセージ**: {error_message}
+        
+        **API キー確認**: {'設定済み' if api_key else '未設定'}
+        
+        **トラブルシューティング**:
+        - APIキーが正しく設定されているか確認してください
+        - OpenAI APIの利用制限に達していないか確認してください
+        - インターネット接続を確認してください
+        """
 
 def main():
     # ページ設定
