@@ -51,24 +51,31 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
             2. `OPENAI_API_KEY=your_api_key`を追加
             """
 
-        # ChatOpenAIインスタンスを作成（互換性を考慮した設定）
+        # ChatOpenAIインスタンスを作成（最もシンプルで安全な方法）
         try:
-            # 環境変数を設定してからインスタンスを作成
+            # まず環境変数を設定
             os.environ['OPENAI_API_KEY'] = api_key
+            
+            # シンプルな初期化
             chat = ChatOpenAI(
                 model="gpt-3.5-turbo",
                 temperature=0.7
             )
         except Exception as init_error:
-            # フォールバック：直接APIキーを指定
-            try:
-                chat = ChatOpenAI(
-                    model="gpt-3.5-turbo",
-                    temperature=0.7,
-                    openai_api_key=api_key
-                )
-            except Exception as fallback_error:
-                return f"ChatOpenAI初期化エラー: {str(fallback_error)}"
+            return f"""
+            ChatOpenAI初期化エラーが発生しました：
+            
+            **エラー**: {str(init_error)}
+            
+            **考えられる原因**:
+            - OpenAI APIキーが無効
+            - ネットワーク接続の問題
+            - 依存関係の問題
+            
+            **解決方法**:
+            1. APIキーを確認してください
+            2. しばらく待ってから再度お試しください
+            """
         
         # メッセージを作成
         messages = [
