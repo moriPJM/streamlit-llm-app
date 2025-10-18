@@ -118,20 +118,23 @@ def main():
         height=150,
         help="具体的な状況や質問を入力すると、より適切なアドバイスを受けることができます"
     )
-    if st.button("🔍 相談する", use_container_width=True):
-        if user_input.strip():
-            # 相談ボタンと回答表示
-            _, col2, _ = st.columns([1, 2, 1])
-            with col2:
-                # LLMから回答を取得
-                response = get_llm_response(user_input, expert_type)
-                
-                # 回答を表示
-                st.success("✅ 回答が完了しました！")
-                st.markdown(f"### 📝 {expert_type}からの回答")
-                st.markdown(response)
-        else:
-            st.warning("⚠️ 相談内容を入力してください。")
+    
+    # 相談ボタンと回答表示
+    _, col2, _ = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔍 相談する", type="primary", use_container_width=True):
+            if user_input.strip():
+                with st.spinner(f"{expert_type}が回答を準備中..."):
+                    # LLMから回答を取得
+                    response = get_llm_response(user_input, expert_type)
+                    
+                    # 回答を表示
+                    st.success("✅ 回答が完了しました！")
+                    st.markdown(f"### 📝 {expert_type}からの回答")
+                    st.markdown(response)
+                    
+            else:
+                st.warning("⚠️ 相談内容を入力してください。")
     
     # サイドバー情報
     with st.sidebar:
