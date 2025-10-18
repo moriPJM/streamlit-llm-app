@@ -51,12 +51,24 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
             2. `OPENAI_API_KEY=your_api_key`を追加
             """
 
-        # ChatOpenAIインスタンスを作成
-        chat = ChatOpenAI(
-            model="gpt-3.5-turbo",
-            temperature=0.7,
-            openai_api_key=api_key
-        )
+        # ChatOpenAIインスタンスを作成（互換性を考慮した設定）
+        try:
+            # 環境変数を設定してからインスタンスを作成
+            os.environ['OPENAI_API_KEY'] = api_key
+            chat = ChatOpenAI(
+                model="gpt-3.5-turbo",
+                temperature=0.7
+            )
+        except Exception as init_error:
+            # フォールバック：直接APIキーを指定
+            try:
+                chat = ChatOpenAI(
+                    model="gpt-3.5-turbo",
+                    temperature=0.7,
+                    openai_api_key=api_key
+                )
+            except Exception as fallback_error:
+                return f"ChatOpenAI初期化エラー: {str(fallback_error)}"
         
         # メッセージを作成
         messages = [
