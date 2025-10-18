@@ -27,11 +27,16 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
     }
     
     try:
+        # APIキーを取得し、未設定の場合はエラーを返す
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return "エラー: OpenAI APIキーが設定されていません。サイドバーの手順に従ってAPIキーを設定してください。"
+
         # ChatOpenAIインスタンスを作成
         chat = ChatOpenAI(
             model="gpt-3.5-turbo",
             temperature=0.7,
-            openai_api_key=os.getenv("OPENAI_API_KEY")
+            openai_api_key=api_key
         )
         
         # メッセージを作成
@@ -41,11 +46,15 @@ def get_llm_response(input_text: str, expert_type: str) -> str:
         ]
         
         # LLMから回答を取得
-        response = chat(messages)
+        response = chat.invoke(messages)
         return response.content
         
     except Exception as e:
-        return f"エラーが発生しました: {str(e)}"
+        # 開発者向けの詳細なエラーはログに出力
+        import logging
+        logging.error("LLM応答取得時に例外発生: %s", str(e))
+        # ユーザーには簡潔なエラーメッセージのみ表示
+        return "エラーが発生しました。しばらくしてから再度お試しください。"
 
 def main():
     # ページ設定
@@ -109,23 +118,20 @@ def main():
         height=150,
         help="具体的な状況や質問を入力すると、より適切なアドバイスを受けることができます"
     )
-    
-    # 相談ボタンと回答表示
-    _, col2, _ = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔍 相談する", type="primary", use_container_width=True):
-            if user_input.strip():
-                with st.spinner(f"{expert_type}が回答を準備中..."):
-                    # LLMから回答を取得
-                    response = get_llm_response(user_input, expert_type)
-                    
-                    # 回答を表示
-                    st.success("✅ 回答が完了しました！")
-                    st.markdown(f"### 📝 {expert_type}からの回答")
-                    st.markdown(response)
-                    
-            else:
-                st.warning("⚠️ 相談内容を入力してください。")
+    if st.button("🔍 相談する", use_container_width=True):
+        if user_input.strip():
+            # 相談ボタンと回答表示
+            _, col2, _ = st.columns([1, 2, 1])
+            with col2:
+                # LLMから回答を取得
+                response = get_llm_response(user_input, expert_type)
+                
+                # 回答を表示
+                st.success("✅ 回答が完了しました！")
+                st.markdown(f"### 📝 {expert_type}からの回答")
+                st.markdown(response)
+        else:
+            st.warning("⚠️ 相談内容を入力してください。")
     
     # サイドバー情報
     with st.sidebar:
